@@ -1955,8 +1955,9 @@ public class VoIPFragment implements VoIPService.StateListener, NotificationCent
                         }
                     } else if (TextUtils.equals(lastError, Instance.ERROR_PRIVACY)) {
                         final String name = ContactsController.formatName(callingUser.first_name, callingUser.last_name);
-                        final String message = LocaleController.formatString("CallNotAvailable", R.string.CallNotAvailable, name);
+                        final String message = LocaleController.formatString(R.string.CallNotAvailable, name);
                         showErrorDialog(AndroidUtilities.replaceTags(message));
+                        AlertsCreator.showCallsForbidden(activity, currentAccount, callingUser.id, null);
                     } else if (TextUtils.equals(lastError, Instance.ERROR_AUDIO_IO)) {
                         showErrorDialog("Error initializing audio hardware");
                     } else if (TextUtils.equals(lastError, Instance.ERROR_LOCALIZED)) {

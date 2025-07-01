@@ -50,6 +50,48 @@ public class ForumUtilities {
     static Drawable dialogGeneralIcon;
     static SparseArray<Drawable> dialogForumDrawables = new SparseArray();
 
+    public static String getMonoForumTitle(int currentAccount, long dialogId, boolean showChannelName) {
+        return getMonoForumTitle(currentAccount, MessagesController.getInstance(currentAccount).getChat(-dialogId), showChannelName);
+    }
+
+    public static String getMonoForumTitle(int currentAccount, TLRPC.Chat chat) {
+        return getMonoForumTitle(currentAccount, chat, false);
+    }
+
+    public static String getMonoForumTitle(int currentAccount, TLRPC.Chat chat, boolean showChannelName) {
+        if (ChatObject.isMonoForum(chat)) {
+            TLRPC.Chat mfChat = MessagesController.getInstance(currentAccount).getChat(chat.linked_monoforum_id);
+            if (mfChat != null) {
+                return showChannelName ? mfChat.title : LocaleController.formatString(R.string.MonoforumTitle, mfChat.title);
+            }
+        } else if (chat != null && chat.linked_monoforum_id != 0) {
+            return showChannelName ? chat.title : LocaleController.formatString(R.string.MonoforumTitle, chat.title);
+        }
+
+        return chat != null ? chat.title : null;
+    }
+
+    public static void setMonoForumAvatar(int currentAccount, TLRPC.Chat chat, AvatarDrawable avatarDrawable, BackupImageView imageView) {
+        TLRPC.Chat mfChat = null;
+        if (ChatObject.isMonoForum(chat)) {
+            mfChat = MessagesController.getInstance(currentAccount).getChat(chat.linked_monoforum_id);
+        }
+        avatarDrawable.setInfo(currentAccount, mfChat != null ? mfChat : chat);
+        imageView.setForUserOrChat(mfChat, avatarDrawable);
+    }
+
+    public static void setMonoForumAvatar(int currentAccount, TLRPC.Chat chat, AvatarDrawable avatarDrawable, ImageReceiver imageView) {
+        TLRPC.Chat mfChat = null;
+        if (ChatObject.isMonoForum(chat)) {
+            mfChat = MessagesController.getInstance(currentAccount).getChat(chat.linked_monoforum_id);
+        }
+        avatarDrawable.setInfo(currentAccount, mfChat != null ? mfChat : chat);
+        imageView.setForUserOrChat(mfChat, avatarDrawable);
+    }
+
+
+
+
     public static void setTopicIcon(BackupImageView backupImageView, TLRPC.TL_forumTopic forumTopic) {
         setTopicIcon(backupImageView, forumTopic, false, false, null);
     }
@@ -436,5 +478,41 @@ public class ForumUtilities {
                 }
             }
         }
+    }
+
+
+    public static int monoForumTopicIdToTopicId(long id) {
+        return Long.hashCode(id);
+    }
+
+    public static ArrayList<TLRPC.TL_forumTopic> monoForumTopicToTopic(ArrayList<TLRPC.savedDialog> dialogs) {
+        ArrayList<TLRPC.TL_forumTopic> result = new ArrayList<>(dialogs.size());
+        for (TLRPC.savedDialog dialog : dialogs) {
+            if (dialog instanceof TLRPC.TL_monoForumDialog) {
+                result.add(monoForumTopicToTopic((TLRPC.TL_monoForumDialog) dialog));
+            }
+        }
+        return result;
+    }
+
+    public static TLRPC.TL_forumTopic monoForumTopicToTopic(TLRPC.TL_monoForumDialog tlMonoForumDialog) {
+        final long topicId = DialogObject.getPeerDialogId(tlMonoForumDialog.peer);
+
+        TLRPC.TL_forumTopic result = new TLRPC.TL_forumTopic();
+        result.id = monoForumTopicIdToTopicId(topicId);
+        result.title = Long.toString(topicId);
+
+        result.top_message = tlMonoForumDialog.top_message;
+        result.read_inbox_max_id = tlMonoForumDialog.read_inbox_max_id;
+        result.read_outbox_max_id = tlMonoForumDialog.read_outbox_max_id;
+        result.unread_reactions_count = tlMonoForumDialog.unread_reactions_count;
+        result.unread_count = tlMonoForumDialog.unread_count;
+        result.draft = tlMonoForumDialog.draft;
+        result.notify_settings = new TLRPC.TL_peerNotifySettings();
+        result.from_id = tlMonoForumDialog.peer;
+
+        result.nopaid_messages_exception = tlMonoForumDialog.nopaid_messages_exception;
+
+        return result;
     }
 }

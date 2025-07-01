@@ -4353,6 +4353,8 @@ public class AndroidUtilities {
                 }
             }
             return stringBuilder;
+        } else if (original == null) {
+            return null;
         }
         return original.toString().replace('\n', ' ');
     }
@@ -5049,6 +5051,28 @@ public class AndroidUtilities {
 
     public static float lerp(float[] ab, float f) {
         return lerp(ab[0], ab[1], f);
+    }
+
+    public static void lerp(Rect a, RectF b, float f, RectF to) {
+        if (to != null) {
+            to.set(
+                lerp(a.left, b.left, f),
+                lerp(a.top, b.top, f),
+                lerp(a.right, b.right, f),
+                lerp(a.bottom, b.bottom, f)
+            );
+        }
+    }
+
+    public static void lerp(RectF a, Rect b, float f, RectF to) {
+        if (to != null) {
+            to.set(
+                lerp(a.left, b.left, f),
+                lerp(a.top, b.top, f),
+                lerp(a.right, b.right, f),
+                lerp(a.bottom, b.bottom, f)
+            );
+        }
     }
 
     public static void lerp(RectF a, RectF b, float f, RectF to) {
@@ -6539,4 +6563,77 @@ public class AndroidUtilities {
         }
     }
 
+    public static void doOnPreDraw(@NonNull View view, @NonNull Runnable action) {
+        final ViewTreeObserver observer = view.getViewTreeObserver();
+
+        ViewTreeObserver.OnPreDrawListener[] listenerHolder = new ViewTreeObserver.OnPreDrawListener[1];
+        boolean[] completed = new boolean[1];
+        listenerHolder[0] = () -> {
+            if (observer.isAlive()) {
+                observer.removeOnPreDrawListener(listenerHolder[0]);
+            }
+            if (!completed[0]) {
+                completed[0] = true;
+                action.run();
+            }
+            return true;
+        };
+        observer.addOnPreDrawListener(listenerHolder[0]);
+    }
+
+    public static boolean isInAirplaneMode(Context context) {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                return Settings.System.getInt(context.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0) != 0;
+            } else {
+                return Settings.Global.getInt(context.getContentResolver(), Settings.Global.AIRPLANE_MODE_ON, 0) != 0;
+            }
+        } catch (Exception ignore) {
+            return false;
+        }
+    }
+
+    public static boolean isWifiEnabled(Context context) {
+        try {
+            WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            return wm != null && wm.isWifiEnabled();
+        } catch (Exception ignore) {
+            return false;
+        }
+    }
+
+    public static boolean gzip(File input, File output) {
+        try (
+            BufferedInputStream in = new BufferedInputStream(new FileInputStream(input));
+            GZIPOutputStream out = new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(output)))
+        ) {
+            byte[] buffer = new byte[8 * 1024];
+            int n;
+            while ((n = in.read(buffer)) != -1) {
+                out.write(buffer, 0, n);
+            }
+            return true;
+        } catch (FileNotFoundException e) {
+            FileLog.e(e);
+        } catch (IOException e) {
+            FileLog.e(e);
+        }
+        return false;
+    }
+
+    private static void printStackTrace(String tag) {
+        StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+        for (int a = 0; a < elements.length; a++) {
+            FileLog.d("[" + tag + "] " + elements[a]);
+        }
+    }
+
+    public static void logFlagSecure() {
+        if (!BuildConfig.DEBUG_VERSION) {
+            return;
+        }
+
+        FileLog.d("[FLAG_SECURE]");
+        printStackTrace("FLAG_SECURE");
+    }
 }
